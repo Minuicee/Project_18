@@ -6,7 +6,9 @@ using namespace std;
 
 void init();
 int get_msb(int num);
+int get_lsb(int num);
 int get_rand(int range);
+int get_rand_print(int range);
 void print_b(int num);
 void print(int num);
 
@@ -14,13 +16,16 @@ int main(){
 
     init();
 
-    u_int64_t num = 0; //get_rand(32);
-    int msb = get_msb(num);
-    
-    print(num);
-    print(msb);
-    print_b(num);
 
+    //// main code ////////////////////////////////////////////////////////////////////
+    u_int32_t num = get_rand_print(32);
+    int msb = get_lsb(num);
+
+    print_b(msb);
+
+    ////////////////////////////////////////////////////////////////////////////////
+
+    cout << endl;
     return 0;
 }
 
@@ -33,8 +38,22 @@ int get_msb(int num){
     return 1 << (31-__builtin_clz(num));
 }
 
+int get_lsb(int num){
+    if(num < 1) return 0;
+    return 1 << __builtin_ctz(num);
+}
+
 int get_rand(int range){
     return rand()%range;
+}
+
+int get_rand_print(int range){
+    auto num = rand()%range;
+    cout << "num:" << endl;
+    print(num);
+    print_b(num);
+    cout << endl;
+    return num;
 }
 
 void print_b(int num){
