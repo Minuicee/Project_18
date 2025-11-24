@@ -7,6 +7,7 @@ using namespace std;
 void init();
 int get_msb(int num);
 int get_lsb(int num);
+int get_row(int num, int row_size);
 int get_rand(int range);
 int get_rand_print(int range);
 void print_b(int num);
@@ -18,10 +19,8 @@ int main(){
 
 
     //// main code ////////////////////////////////////////////////////////////////////
-    u_int32_t num = get_rand_print(32);
-    int msb = get_lsb(num);
-
-    print_b(msb);
+    //u_int32_t num = get_rand_print(32);
+    print(get_row(64, 3));
 
     ////////////////////////////////////////////////////////////////////////////////
 
@@ -45,6 +44,12 @@ int get_lsb(int num){
 
 int get_rand(int range){
     return rand()%range;
+}
+
+int get_row(int num, int row_size){
+    //only 1 bit of num can be 1
+    if(num < 1) return 0;
+    return __builtin_ctz(num)/row_size;
 }
 
 int get_rand_print(int range){
