@@ -10,7 +10,9 @@ int get_lsb(int num);
 int get_row(int num, int row_size);
 int get_rand(int range);
 int get_rand_print(int range);
-void print_b(int num);
+void print_b(__uint128_t num);
+void print_as_grid(__uint128_t num, int rows, int cols);
+//! void print_as_grid_compare()
 void print(int num);
 
 int main(){
@@ -20,14 +22,13 @@ int main(){
 
     //// main code ////////////////////////////////////////////////////////////////////
     //u_int32_t num = get_rand_print(32);
-    print(get_row(64, 3));
+    print_as_grid((__uint128_t)3236969487, 12, 10);
 
     ////////////////////////////////////////////////////////////////////////////////
 
     cout << endl;
     return 0;
 }
-
 void init(){
     srand(time(NULL));
 }
@@ -61,7 +62,7 @@ int get_rand_print(int range){
     return num;
 }
 
-void print_b(int num){
+void print_b(__uint128_t num){
     if (num == 0) {
         cout << 0 << endl;
         return;
@@ -77,4 +78,23 @@ void print_b(int num){
 
 void print(int num){
     cout << num << endl;
+}
+
+void print_as_grid(__uint128_t num, int rows, int cols){
+    cout << endl;
+    int index;
+    __uint128_t element;
+    __uint128_t block_mask;
+    for(int row = 0; row < rows; row++){
+        for(int col = 0; col < cols; col++){
+            index = col+row*cols;
+            element = (num >> index) & 1u;
+            if(element){ 
+                cout << "■";
+            }else{ 
+                cout << "◻";
+            }
+        }
+        cout << endl;
+    }
 }
