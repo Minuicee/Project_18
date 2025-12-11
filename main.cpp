@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <numeric>
 #include <bits/stdc++.h>
 
 using namespace std;
@@ -11,19 +12,21 @@ __int128_t grid;
 void print_b(__uint128_t num);
 void clear_grid();
 void print_grid(__uint128_t block);
+void print_as_grid(string message,__uint128_t num);
+void print_as_grid_compare(string message, __uint128_t num1, __uint128_t num2);
 void init_blocks_free_space();
 void init_col_masks();
 void init();
 
 //create a struct for direction types: up, down, right & left
 //saves how many bits each square has to be shifted and which blocks_free_space direction matters
-struct direction_type{ //not used
+struct direction_type{ 
     int shift;
     u_int8_t free_space_mask_1;
     u_int8_t free_space_mask_2;
 };
 
-//define directions //not used
+//define directions 
 static direction_type UP = {-10, 1u, 1u << 1};
 static direction_type DOWN = {10, 1u << 2, 1u << 3};
 static direction_type LEFT = {-1, 1u << 4, 1u << 5};
@@ -81,12 +84,11 @@ int main(){
     vector<__uint128_t> test_blocks = create_blocks(block_id);
 
     grid |= test_blocks[1];
-
-    print_grid((__uint128_t)0u);
     
-    cout << get_possible_moves(test_blocks, block_id)[0][0] << endl;
-    cout << get_possible_moves(test_blocks, block_id)[0][1] << endl;
-    cout << get_possible_moves(test_blocks, block_id)[0][2] << endl;
+    auto moves = get_possible_moves(test_blocks, block_id);
+    cout << moves[0][0] << endl;
+    cout << moves[0][1] << endl;
+    cout << moves[0][2] << endl;
     
     print_grid((__uint128_t)0u);
 
@@ -156,29 +158,33 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
         max_col_movement = grid_size.first-4+(right_free_space + left_free_space);  //size of cols minus size of square plus non filled cols
         blocks_lowest = 4-get_row(blocks[block_id][rotation], 4) - down_free_space; //lowest square
 
+        //col mask for cols the block is in
+        cols_to_look_at = 4-left_free_space-right_free_space;
+        col_mask = accumulate(&col_masks[0],
+            &col_masks[cols_to_look_at-1], //-1 because we start counting at 0 so we look at 0, 1, ..., cols_to_look_at-1
+            (__uint128_t)0u, 
+            [](__uint128_t a, __uint128_t b){ return a | b; });
+
         for(int col = 0; col <= max_col_movement; col++){
             //for new column move right
             if(col != 0){
                 block = block_move(block, RIGHT.shift);
+                col_mask <<= 1;
                 position.second++;
             }
 
-            //col mask for cols the block is in
-            cols_to_look_at = 4-(right_free_space+left_free_space);
-            col_mask = accumulate(&col_masks[col],
-                &col_masks[col+cols_to_look_at],
-                0u, 
-                [](unsigned a, unsigned b){ return a | b; });
             //if there is nothing in the cols where the block is, just place it at the bottom
-            // if((grid & col_mask) == 0u){
-            //     possible_moves.push_back({rotation, 0, col});
-            //     continue;
+            if((grid & col_mask) == 0u){
+                possible_moves.push_back({rotation, 0, col});
+                continue;
 
-            // }    
+            }
+            print_as_grid_compare("grid, col_mask", grid , col_mask);
             //get highest square of current cols that the block is in
-            cols_highest = 12-(grid_size.first-get_row(grid & col_mask, grid_size.second)); 
+            cols_highest = get_row(grid & col_mask, grid_size.second);  //!cols highest might be wrong
             //move up to first place 1 below first guaranteed legal 
             squares_to_move_up = cols_highest-blocks_lowest; //12 - cols_highest - blocks_lowest + 1(because we want to be above that block)
+            print_as_grid("squares_to_move_up", squares_to_move_up);
             //only do it if that wouldn't be above the grid
             if(squares_to_move_up < max_row_movement){
                 //if there is a need to go up then do it
@@ -221,7 +227,60 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
 int get_row(int num, int row_size){
     //only 1 bit of num can be 1
     if(num < 1) return 0;
+    cout << __builtin_ctz(num);
     return __builtin_ctz(num)/row_size;
+}
+
+void print_as_grid_compare(string message, __uint128_t num1, __uint128_t num2){
+    cout << endl;
+    cout << message << endl;
+    int index;
+    __uint128_t element;
+    __uint128_t block_mask;
+    for(int row = 0; row < grid_size.first; row++){
+        for(int col = 0; col < grid_size.second * 2; col++){
+            if(col%grid_size.second==0) cout << "   ";
+            if(col/grid_size.second){
+                index = (col%grid_size.second)+row*grid_size.second;
+                element = (num2 >> index) & 1u;
+                if(element){ 
+                    cout << "■";
+                }else{
+                    cout << "◻";
+                }
+            }
+            else{
+                index = col+row*grid_size.second;
+                element = (num1 >> index) & 1u;
+                if(element){ 
+                    cout << "■";
+                }else{
+                    cout << "◻";
+                }
+            }
+        }
+        cout << endl;
+    }
+}
+
+void print_as_grid(string message, __uint128_t num){
+    cout << endl;
+    cout << message << endl;
+    int index;
+    __uint128_t element;
+    __uint128_t block_mask;
+    for(int row = 0; row < grid_size.first; row++){
+        for(int col = 0; col < grid_size.second; col++){
+            index = col+row*grid_size.second;
+            element = (num >> index) & 1u;
+            if(element){ 
+                cout << "■";
+            }else{ 
+                cout << "◻";
+            }
+        }
+        cout << endl;
+    }
 }
 
 void init_col_masks(){
