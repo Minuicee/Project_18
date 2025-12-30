@@ -60,7 +60,7 @@ __int128_t block_move(__uint128_t block, int shift);
 u_int16_t* get_block();
 int get_msb(int num);
 int get_lsb(int num);
-int get_row(int num, int row_size);
+int get_row(__uint128_t num, int row_size);
 int get_random_block_id();
 vector<__uint128_t> create_blocks(int block_id);
 int get_block_position(__uint128_t block);
@@ -80,7 +80,7 @@ int main(){
     init();
 
     //test grid
-    int block_id = 0;
+    int block_id = 2;
     vector<__uint128_t> test_blocks = create_blocks(block_id);
 
     grid |= test_blocks[1];
@@ -98,9 +98,11 @@ int main(){
 __int128_t block_move(__uint128_t block, int shift){
     //shift left if shift_amount is positive, else right
     if(shift < 0){
+        print_as_grid("block moved", block >> -shift); //*
         return block >> -shift;
     }
     else{
+        print_as_grid("block moved", block << shift); //*
         return block << shift;
     }
 }
@@ -117,11 +119,9 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
     int right_free_space;
     int max_row_movement;
     int max_col_movement;
-    int squares_to_move_up;
     __uint128_t block;
     __uint128_t col_mask;
     int cols_to_look_at;
-    int blocks_lowest;
     int cols_highest;
     bool is_legal;
     
@@ -154,14 +154,13 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
         right_free_space = (free_space >> 6) & 3;
 
         //go up until either out of grid or guaranteed legal
-        max_row_movement = grid_size.second-4+(up_free_space + down_free_space); //size of rows minus size of square plus non filled rows
-        max_col_movement = grid_size.first-4+(right_free_space + left_free_space);  //size of cols minus size of square plus non filled cols
-        blocks_lowest = 4-get_row(blocks[block_id][rotation], 4) - down_free_space; //lowest square
+        max_row_movement = grid_size.first-4+(up_free_space + down_free_space); //size of rows minus size of square plus non filled rows
+        max_col_movement = grid_size.second-4+(right_free_space + left_free_space);  //size of cols minus size of square plus non filled cols
 
         //col mask for cols the block is in
         cols_to_look_at = 4-left_free_space-right_free_space;
         col_mask = accumulate(&col_masks[0],
-            &col_masks[cols_to_look_at-1], //-1 because we start counting at 0 so we look at 0, 1, ..., cols_to_look_at-1
+            &col_masks[cols_to_look_at], 
             (__uint128_t)0u, 
             [](__uint128_t a, __uint128_t b){ return a | b; });
 
@@ -179,23 +178,20 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
                 continue;
 
             }
-            print_as_grid_compare("grid, col_mask", grid , col_mask);
+
             //get highest square of current cols that the block is in
-            cols_highest = get_row(grid & col_mask, grid_size.second);  //!cols highest might be wrong
-            //move up to first place 1 below first guaranteed legal 
-            squares_to_move_up = cols_highest-blocks_lowest; //12 - cols_highest - blocks_lowest + 1(because we want to be above that block)
-            print_as_grid("squares_to_move_up", squares_to_move_up);
+            cols_highest = get_row(grid & col_mask, grid_size.second); 
+
             //only do it if that wouldn't be above the grid
-            if(squares_to_move_up < max_row_movement){
+            if(cols_highest < max_row_movement){
                 //if there is a need to go up then do it
-                if(squares_to_move_up > 0){
-                    //but before moving block up move it down to position.first == 0 (it was combined so there only has to be one move operation instead of two)
-                    //for example if the block is on 3 and has to go to 5, it will move up by (5-3 -1(because we want it to be the first place where collision can happen)) = 2
-                    block = block_move(block, (squares_to_move_up*UP.shift)+(DOWN.shift*position.first+1));
-                    position.first = squares_to_move_up-1; //move down then squares_to_move_up up
+                if(cols_highest > 0){
+                    //move the block down until its at position 0. Then move up to the position where it's guaranteed legal and then one down
+                    block = block_move(block, ((cols_highest-position.first)*UP.shift)); 
+                    position.first = cols_highest; //we dont add the -postition.first since it cancels the old position so after that the block is at position 0
                 } else {
-                    block = block_move(block, DOWN.shift*(position.first)); //! ?test col masks
-                    position.first = 0;
+                    possible_moves.push_back({rotation, 0, col});
+                    continue;
                 }
             }
             else{
@@ -224,14 +220,18 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
     }
     return possible_moves;
 }
-int get_row(int num, int row_size){
-    //only 1 bit of num can be 1
+int get_row(__uint128_t num, int row_size){
     if(num < 1) return 0;
-    cout << __builtin_ctz(num);
-    return __builtin_ctz(num)/row_size;
+    uint64_t upper = (uint64_t)(num);
+    if(upper){
+        return 11-(__builtin_ctzll(upper) / row_size); 
+    } else {
+        return 11-((__builtin_ctzll(num >> 64) + 64) / row_size);
+    }
 }
 
 void print_as_grid_compare(string message, __uint128_t num1, __uint128_t num2){
+    //print two different grids next to eachother
     cout << endl;
     cout << message << endl;
     int index;
@@ -264,6 +264,7 @@ void print_as_grid_compare(string message, __uint128_t num1, __uint128_t num2){
 }
 
 void print_as_grid(string message, __uint128_t num){
+    //print one grid
     cout << endl;
     cout << message << endl;
     int index;
@@ -421,12 +422,8 @@ int get_block_position(__uint128_t block){
 void print_b(__uint128_t num){
     //print binary number
     cout << endl;
-    vector<int> digits;
-    for(int i = 0; i < 120; i++){
-        digits.push_back((int)((num >> i) & 1u));
+    for(int i = 119; i >= 0; i--){
+        cout << (int)((num >> i) & 1u);
     }
-    for(int i = 0; i < 120; i++){
-        cout << digits.back();
-        digits.pop_back();
-    }
+    cout << endl;
 }
