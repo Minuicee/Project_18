@@ -17,6 +17,23 @@ void print_as_grid_compare(string message, __uint128_t num1, __uint128_t num2);
 void init_blocks_free_space();
 void init_col_masks();
 void init();
+void play();
+__int128_t block_move(__uint128_t block, int shift);
+u_int16_t* get_block();
+int get_msb(int num);
+int get_lsb(int num);
+int get_row(__uint128_t num, int row_size);
+int get_random_block_id();
+vector<__uint128_t> create_blocks(int block_id);
+int get_block_position(__uint128_t block);
+//return possible moves with information in order: rotation, bits moved right, bits moved left
+//every move of return vector is ordered as: rotation, up_movement, right_movement
+vector<vector<int>> get_actions(vector<__uint128_t> blocks, int block_id);
+// states first element is a vector of all heights, second element are following features in following order:
+// aggregate_height, max_height, holes, bumpiness, lines cleared
+pair<vector<int>,vector<int>> get_state();
+vector<int> generate_move(pair<vector<int>,vector<int>> state, vector<vector<int>> actions);
+void play_move(vector<__uint128_t> blocks, vector<int> move);
 
 //create a struct for direction types: up, down, right & left
 //saves how many bits each square has to be shifted and which blocks_free_space direction matters
@@ -49,25 +66,14 @@ static pair<int,int> grid_size = {12,10};
 //variable for free space in every direction
 //uses 8 bits, 2 bits per direction, in following order: up-down-left-right
 u_int8_t blocks_free_space[7][4];
-vector<__uint128_t> col_masks;
+vector<__uint128_t> accumulated_col_masks;
+vector<__uint128_t> single_col_masks;
 u_int16_t space_masks[4][2] = {
     {0xF000, 0xFF00}, // up1&up2
     {0x000F, 0x00FF}, // down1&down2
     {0x1111, 0x3333}, // left1&left2
     {0x8888, 0xcccc} // right1&right2
 };
-__int128_t block_move(__uint128_t block, int shift);
-u_int16_t* get_block();
-int get_msb(int num);
-int get_lsb(int num);
-int get_row(__uint128_t num, int row_size);
-int get_random_block_id();
-vector<__uint128_t> create_blocks(int block_id);
-int get_block_position(__uint128_t block);
-//return possible moves with information in order: rotation, bits moved right, bits moved left
-//every move of return vector is ordered as: rotation, up_movement, right_movement
-vector<vector<int>> get_possible_moves(vector<__uint128_t> blocks, int block_id);
-
 //variables for states
 // int current_block_rotation;
 // int current_block_position;
@@ -76,41 +82,87 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> blocks, int block_id)
 //main function
 int main(){
 
-    //init variables etc
-    init();
-
-    //test grid
-    int block_id = 2;
-    vector<__uint128_t> test_blocks = create_blocks(block_id);
-
-    grid |= test_blocks[1];
-    
-    auto moves = get_possible_moves(test_blocks, block_id);
-    cout << moves[0][0] << endl;
-    cout << moves[0][1] << endl;
-    cout << moves[0][2] << endl;
-    
-    print_grid((__uint128_t)0u);
+    play();
 
     return 0;
 }
 
+void play(){
+    bool lost = false;
+
+    //init variables etc
+    init();
+
+    // while(!lost){
+    //     auto block_id = get_random_block_id();
+    //     auto blocks = create_blocks(block_id);
+    //     auto move = generate_move(get_state(), get_actions(blocks, block_id));
+    //     play_move(blocks, move);
+
+    // } 
+    #include <vector>
+
+    // auto block_id = get_random_block_id();
+    // auto blocks = create_blocks(block_id);
+    // grid |= blocks[0];
+    // get_actions(blocks, block_id);
+
+}
+
+pair<vector<int>,vector<int>> get_state(){
+    pair<vector<int>,vector<int>> state;
+    auto aggregate_height = 0;
+    auto max_height = -1;
+    auto holes = 0;
+
+    // for(int i = 0; i < grid_size.second; i++){
+    //     auto col = grid&single_col_masks[i];
+    //     auto height = get_row(col, grid_size.second);
+    //     holes += height - __builtin_popcount(col); //!
+    //     state.first.push_back(height);
+    //     aggregate_height += height;
+    //     if(height > max_height){
+    //         max_height = height;
+    //     }
+    // }
+    // state.second.push_back(aggregate_height);
+    // state.second.push_back(max_height);
+    // state.second.push_back()
+    //! continue here
+    // states first element is a vector of all heights, second element are following features in following order:
+    // aggregate_height, max_height, holes, bumpiness, lines cleared
+
+    return state;
+}
+
+
 __int128_t block_move(__uint128_t block, int shift){
     //shift left if shift_amount is positive, else right
     if(shift < 0){
-        print_as_grid("block moved", block >> -shift); //*
         return block >> -shift;
     }
     else{
-        print_as_grid("block moved", block << shift); //*
         return block << shift;
     }
 }
 
-
-vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int block_id){
+vector<vector<int>> get_actions(vector<__uint128_t> block_masks, int block_id){
     //init needed variable
-    vector<vector<int>> possible_moves;
+    vector<vector<int>> possible_moves;//= malloc(9*3*sizeof(int)) // TODO  get size
+    #include <vector>
+
+std::vector<std::vector<int>> v = {
+    {10,10,10},
+    {10,10,10},
+    {10,10,10},
+    {10,10,10},
+    {10,10,10},
+    {10,10,10},
+    {10,10,10},
+    {10,10,10},
+    {10,10,10}
+};
+
     pair<int, int> position;
     uint8_t free_space;
     int up_free_space;
@@ -120,7 +172,7 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
     int max_row_movement;
     int max_col_movement;
     __uint128_t block;
-    __uint128_t col_mask;
+    __uint128_t accumulated_col_mask;
     int cols_to_look_at;
     int cols_highest;
     bool is_legal;
@@ -159,28 +211,27 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
 
         //col mask for cols the block is in
         cols_to_look_at = 4-left_free_space-right_free_space;
-        col_mask = accumulate(&col_masks[0],
-            &col_masks[cols_to_look_at], 
-            (__uint128_t)0u, 
-            [](__uint128_t a, __uint128_t b){ return a | b; });
+        accumulated_col_mask = accumulated_col_masks[cols_to_look_at];
 
         for(int col = 0; col <= max_col_movement; col++){
             //for new column move right
             if(col != 0){
                 block = block_move(block, RIGHT.shift);
-                col_mask <<= 1;
+                accumulated_col_mask <<= 1;
                 position.second++;
             }
 
             //if there is nothing in the cols where the block is, just place it at the bottom
-            if((grid & col_mask) == 0u){
+            if((grid & accumulated_col_mask) == 0u){
                 possible_moves.push_back({rotation, 0, col});
                 continue;
 
             }
 
             //get highest square of current cols that the block is in
-            cols_highest = get_row(grid & col_mask, grid_size.second); 
+            cols_highest = get_row(grid & accumulated_col_mask, grid_size.second); 
+            print_as_grid_compare("acc", accumulated_col_mask, grid);
+            print_as_grid("block", block);
 
             //only do it if that wouldn't be above the grid
             if(cols_highest < max_row_movement){
@@ -192,7 +243,7 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
                 } else {
                     possible_moves.push_back({rotation, 0, col});
                     continue;
-                }
+                } 
             }
             else{
                 continue;
@@ -220,14 +271,15 @@ vector<vector<int>> get_possible_moves(vector<__uint128_t> block_masks, int bloc
     }
     return possible_moves;
 }
+
 int get_row(__uint128_t num, int row_size){
-    if(num < 1) return 0;
+    if(num == 0) return -1;
     uint64_t upper = (uint64_t)(num);
     if(upper){
         return 11-(__builtin_ctzll(upper) / row_size); 
     } else {
         return 11-((__builtin_ctzll(num >> 64) + 64) / row_size);
-    }
+    } 
 }
 
 void print_as_grid_compare(string message, __uint128_t num1, __uint128_t num2){
@@ -287,14 +339,39 @@ void print_as_grid(string message, __uint128_t num){
 void init_col_masks(){
     //init bit masks for cols in grid
     __uint128_t col_mask;
+    __uint128_t accumulated_col_mask;
 
+    //get every col as mask
     for(int i = 0; i < grid_size.second; i++){ //for every col
         col_mask = 0u;
         for(int j = 0; j < grid_size.first; j++){ //for every row in that col
             col_mask |= (__uint128_t)1 << (j*grid_size.second + i);
         }
-        col_masks.push_back(col_mask);
+        single_col_masks.push_back(col_mask);
     }
+
+    //save accumulated col masks for move generation
+    col_mask = 0u;
+    for(int i = 0; i < grid_size.first; i++){ //for every row
+        col_mask |= (__uint128_t)1 << (i*grid_size.second);
+    }
+    accumulated_col_mask = 0;
+    for(int i = 0; i < 4; i++){
+            accumulated_col_mask = accumulate(&single_col_masks[0],
+            &single_col_masks[i], 
+            (__uint128_t)0u, 
+            [](__uint128_t a, __uint128_t b){ return a | b; });
+        accumulated_col_masks.push_back(accumulated_col_mask);
+    }
+}
+
+
+vector<int> generate_move(pair<vector<int>,vector<int>> state, vector<vector<int>> actions){
+    //!
+}
+
+void play_move(vector<__uint128_t> blocks, vector<int> move){
+    //!
 }
 
 void clear_grid(){
